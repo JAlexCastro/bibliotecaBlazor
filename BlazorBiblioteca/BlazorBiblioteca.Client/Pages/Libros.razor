@@ -1,0 +1,231 @@
+﻿@page "/libros"
+@using BlazorBiblioteca.Shared.Models
+@using BlazorBiblioteca.Client.Services
+@inject LibroService libroService
+
+<style>
+    .form-container {
+        max-width: 400px;
+        padding: 20px;
+        border: 1px solid #ddd;
+        border-radius: 10px;
+        background-color: #f9f9f9;
+        margin-bottom: 30px;
+    }
+
+    .form-group {
+        margin-bottom: 15px;
+        display: flex;
+        flex-direction: column;
+    }
+
+    label {
+        font-weight: bold;
+        margin-bottom: 5px;
+    }
+
+    .input {
+        padding: 8px;
+        border-radius: 5px;
+        border: 1px solid #ccc;
+    }
+
+    .btn-guardar {
+        background-color: #007bff;
+        color: white;
+        border: none;
+        padding: 10px;
+        border-radius: 5px;
+        cursor: pointer;
+    }
+
+        .btn-guardar:hover {
+            background-color: #0056b3;
+        }
+
+    .error-box {
+        color: red;
+        margin-bottom: 10px;
+    }
+
+
+    .libro-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 12px;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        margin-bottom: 10px;
+        background-color: #ffffff;
+    }
+
+    .botones {
+        display: flex;
+        gap: 10px;
+    }
+
+    .btn-editar {
+        background-color: #ffc107;
+        border: none;
+        padding: 6px 10px;
+        border-radius: 5px;
+        cursor: pointer;
+    }
+
+        .btn-editar:hover {
+            background-color: #e0a800;
+        }
+
+    .btn-eliminar {
+        background-color: red;
+        color: white;
+        border: none;
+        padding: 6px 10px;
+        border-radius: 5px;
+        cursor: pointer;
+    }
+
+        .btn-eliminar:hover {
+            background-color: #b02a37;
+        }
+
+
+</style>
+
+<h3> Biblioteca</h3>
+
+<EditForm Model="@libro" OnValidSubmit="GuardarLibro" FormName="formLibro" class="form-container">
+    <DataAnnotationsValidator />
+    <ValidationSummary class="error-box" />
+
+    <div class="form-group">
+        <label>Nombre:</label>
+        <InputText class="input" @bind-Value="libro.NombreLibro" />
+    </div>
+
+    <div class="form-group">
+        <label>Autor:</label>
+        <InputText class="input" @bind-Value="libro.Autor" />
+    </div>
+
+    <div class="form-group">
+        <label>Páginas:</label>
+        <InputNumber class="input" @bind-Value="libro.NumPaginas" />
+    </div>
+
+    <div class="form-group">
+        <label>Fecha:</label>
+        <InputDate class="input" @bind-Value="libro.FechaPublicacion" />
+    </div>
+
+    <button type="submit" class="btn-guardar">Guardar</button>
+</EditForm>
+
+<p>@mensaje</p>
+
+<hr />
+
+<h4 style="margin-top:30px;" Lista de Libros</h4>
+
+@if (libros == null || libros.Count == 0)
+{
+    <p>No existen libros en la biblioteca actualmente</p>
+}
+else
+{
+
+    @if (libros == null || libros.Count == 0)
+    {
+        <p>No existen libros en la biblioteca actualmente</p>
+    }
+    else
+    {
+        @foreach (var item in libros)
+        {
+            <div class="libro-item" @key="item.Id">
+                <div>
+                    <strong>@item.NombreLibro</strong><br />
+                    <small>@item.Autor</small>
+                </div>
+
+                <div class="botones">
+                    <button type="button" class="btn-editar" @onclick="() => EditarLibro(item)">Editar</button>
+                    <button type="button" class="btn-eliminar" @onclick="() => Eliminar(item.Id)">Eliminar</button>
+                </div>
+            </div>
+        }
+    }
+}
+
+@code {
+    // Lista donde guardamos todos los libros que vienen de la base de datos
+    private List<Libro> libros = new();
+
+    // Objeto que usamos para el formulario (crear o editar un libro)
+    private Libro libro = new Libro();
+
+    // Variable para mostrar mensajes en pantalla (éxito o error)
+    private string mensaje = "";
+
+    // Este método se ejecuta automáticamente cuando la página carga
+    protected override async Task OnInitializedAsync()
+    {
+        // Llama a la función que trae los libros desde la API
+        await CargarLibros();
+    }
+
+    // Método para obtener todos los libros desde el backend
+    private async Task CargarLibros()
+    {
+        // Llama al servicio (la API) y guarda los datos en la lista
+        libros = await libroService.GetLibros();
+    }
+
+    // Método que se ejecuta cuando se presiona el botón "Guardar"
+    private async Task GuardarLibro()
+    {
+        // Si el ID es 0 significa que es un libro nuevo
+        if (libro.Id == 0)
+        {
+            // Llama al servicio para crear un nuevo libro
+            mensaje = await libroService.CrearLibro(libro);
+        }
+        else
+        {
+            // Si el ID ya existe, entonces estamos editando un libro
+            mensaje = await libroService.ActualizarLibro(libro);
+        }
+
+        // Limpia el formulario (es un nuevo objeto vacío)
+        libro = new Libro();
+
+        // Vuelve a cargar la lista para ver los cambios reflejados
+        await CargarLibros();
+    }
+
+    // Método que se ejecuta cuando presionas "Editar"
+    private void EditarLibro(Libro item)
+    {
+        // Copia los datos del libro seleccionado al formulario
+        // Esto permite que el usuario vea y modifique los datos
+        libro = new Libro
+        {
+            Id = item.Id,
+            NombreLibro = item.NombreLibro,
+            Autor = item.Autor,
+            NumPaginas = item.NumPaginas,
+            FechaPublicacion = item.FechaPublicacion
+        };
+    }
+
+    // Método que se ejecuta cuando presionas "Eliminar"
+    private async Task Eliminar(int id)
+    {
+        // Llama al servicio para eliminar el libro por su ID
+        mensaje = await libroService.EliminarLibro(id);
+
+        // Recarga la lista para que desaparezca de la pantalla
+        await CargarLibros();
+    }
+}

@@ -1,0 +1,7 @@
+﻿bin/
+obj/
+.vs/
+wwwroot/service-worker-assets.js
+appsettings.Development.json
+node_modules/
+
